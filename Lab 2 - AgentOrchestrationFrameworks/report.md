@@ -1,5 +1,7 @@
 # Running an LLM Report
 
+## Nathan Todd
+
 In this report, I explored Lang Graph by attempting to create a simple agent that can answer questions, with both Qwen and Llama models. Lang Graph is an orchestration framework that allows for the creation of complex workflows using LLMs and other tools. The models used include Llama-3.2B and Qwen/Qwen-2.5B, allowing the user to choose between the two models when chatting with the agent and also allowing each model to view the history and also the corresponding user, whether it be the other model, the user, or itself.
 
 1. To start, I implemented the 'verbose' and 'quiet' flags in the code to allow for the user to choose the level of output detail they want during execution. The 'verbose' flag provides detailed information about each step of the process, while the 'quiet' flag minimizes output to only essential information. This was done by adding conditional print statements throughout the code that check the status of these flags before outputting information.
@@ -102,3 +104,9 @@ In this report, I explored Lang Graph by attempting to create a simple agent tha
         \> Hi Llama, can you remember our last conversation?
 
         **Llama**: Yes, I remember our last conversation. We were discussing data structures and their importance in computer science. Is there anything specific you would like to revisit or expand upon from our previous discussion?
+
+.
+
+.
+
+Link to Colab Notebook: [LLM Report Colab](https://colab.research.google.com/drive/1IxRvXpX4NAEU7K0BKUpPElnaMbPpzqNV?usp=sharing)
