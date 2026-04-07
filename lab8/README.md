@@ -1,20 +1,19 @@
 # Discussion Questions
+
 1. Before vs. after: What specific improvements did you observe? Did the model learn SQL syntax, schema grounding, or both? What was the change in accuracy on the 200 held-out test questions? How well did it do on the additional manual test questions (Step 7)?
-- Before the fine-tuning, the base model achieved an accuracy of 37.50% on the 200 held-out test questions. After fine-tuning, the accuracy improved significantly to 86.50%. This suggests that the model learned both SQL syntax and schema grounding, as it was able to generate correct SQL queries based on the provided context. The improvement in accuracy indicates that the model was able to better understand the structure of the database and how to formulate queries accordingly.
 
-
-
-Hint: on the 200 in-distribution test questions, accuracy typically improves from ~37% (base) to ~87% (fine-tuned). The Step 7 questions use novel schemas and may show lower accuracy.
+Before fine-tuning, the base model achieved 37.50–39.00% accuracy on the 200 held-out test questions. After one epoch of fine-tuning on ~78,377 examples, accuracy rose to 86.50–87.50%. The model appears to have learned both SQL syntax and schema grounding: it correctly maps natural language to column names from the CREATE TABLE context and generates valid SQL constructs like COUNT, MAX, WHERE, GROUP BY, and ORDER BY. On the Step 7 novel-schema questions, it scored 2/5 — getting both easy questions right (employees and students) but failing on the medium and hard ones — consistent with the expected drop on out-of-distribution schemas.
 
 2. RAG comparison: Imagine you had a RAG system with 1,000 (question, SQL) pairs in a vector database. For which of the test questions above would RAG work well? For which would it struggle? Why?
-- A RAG (Retrieval-Augmented Generation) system with 1,000 (question, SQL) pairs in a vector database would work well for test questions that are similar to the examples in the database. If a test question closely matches one of the stored pairs, the RAG system can retrieve the relevant SQL query and provide an accurate answer. However, it would struggle with test questions that are significantly different from the stored examples, especially those that require understanding of novel schemas or complex logic that is not represented in the database. The RAG system relies heavily on the quality and diversity of the stored examples, so it may fail to generalize to unseen questions or schemas.
+
+A RAG system would work best on questions that closely match stored examples in phrasing and structure — simple SELECTs with a single WHERE clause (like Q1 and Q3 in Step 7) are likely to have near-duplicates in a 1,000-pair corpus. It would struggle with questions requiring novel schema grounding (Q2, Q4, Q5) because even if a retrieved example has similar intent, the column names and table structure won't match. RAG also can't compose new SQL from scratch — it can only surface what it has seen. The compositional skill needed for GROUP BY + ORDER BY + LIMIT (Q4) or a two-table JOIN (Q5) is exactly what fine-tuning builds into the weights, and what RAG cannot replicate through retrieval alone.
 
 3. Error analysis: When the fine-tuned model gets a query wrong, how does it fail? Wrong column names? Wrong SQL syntax? Wrong logic? Each failure mode tells you something different about what the model learned.
-- When the fine-tuned model gets a query wrong, it can fail in several ways:
-  - Wrong column names: This indicates that the model may not have fully learned the schema grounding or may have difficulty mapping the natural language question to the correct database schema.
-  - Wrong SQL syntax: This suggests that the model may not have fully grasped the SQL syntax rules, which could lead to generating queries that are not executable.
-  - Wrong logic: This implies that the model may understand the syntax and schema but fails to correctly interpret the question's intent, leading to incorrect query formulation.
-Each failure mode provides insights into different aspects of the model's learning. For instance, consistent errors in column names may indicate a need for better schema grounding, while syntax errors may point to a need for more focused training on SQL syntax.
+
+The Step 7 failures reveal three distinct error modes:
+- **Wrong aggregation (Q2):** The model generated `SELECT SUM(id) FROM products WHERE price > 50 AND category = 'food'` instead of `SELECT COUNT(*) FROM products WHERE price > 50`. It used `SUM` on the wrong column and hallucinated a spurious `category` filter. This is a logic error — the model understood the schema but misread the question's intent.
+- **Incomplete SELECT (Q4):** The model produced `SELECT customer FROM orders GROUP BY customer ORDER BY SUM(amount) DESC LIMIT 3`, dropping `SUM(amount)` from the SELECT clause. The ORDER BY logic was correct, but the output columns were incomplete. The model learned the ranking pattern but didn't generalize that aggregated columns must also be returned.
+- **Hallucinated logic (Q5):** For the JOIN query, the model added a hardcoded `WHERE T2.department = 'Math'` filter not present in the question and grouped by the wrong table alias. This is a schema grounding failure on a two-table query — the hardest case in the distribution.
 
 
 Training and evaluating the model on the SQL dataset...
